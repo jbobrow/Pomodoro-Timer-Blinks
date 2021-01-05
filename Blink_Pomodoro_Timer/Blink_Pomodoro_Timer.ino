@@ -21,6 +21,8 @@ Timer readyAnimation;
 Timer alarmAnimation;
 Timer countAnimation;
 
+int countBrightness;
+
 #define STEP_SIZE 10
 #define STEP_TIME_MS 30
 int brightness = 1;
@@ -54,18 +56,12 @@ void loop() {
     if (pomodoro.isExpired()) {
       state = 2;
     }
-    if (buttonSingleClicked()) {
-      countDisplayBright();
-    }
     countDisplay();
-
-
   }
 
   //alarm///////////
   else if (state == 2) {
     alarmDisplay();
-
     if (buttonSingleClicked()) {
       state = 0;
     }
@@ -78,25 +74,13 @@ void loop() {
 
 }
 
-void countDisplayBright() {
-  float timeLeft = float(pomodoro.getRemaining() / pomodoroLength) * 6.0;
 
-  for (int i = 0; i < 6; i++) {
-    if (i <= timeLeft) {
-      setColorOnFace(YELLOW, i);
-    }
-    else {
-      setColorOnFace(OFF, i);
-    }
-  }
-
-}
 
 void countDisplay() {
   float timeLeft = float(pomodoro.getRemaining() / pomodoroLength) * 6.0;
 
   if (countAnimation.isExpired()) {
-    if ( (brightness + step > MAX_BRIGHTNESS / 2 ) || (brightness + step < MAX_BRIGHTNESS / 6 ) ) {
+    if ( (brightness + step > MAX_BRIGHTNESS ) || (brightness + step < 0) ) {
       step = -step;
     }
     brightness += step;
@@ -109,7 +93,7 @@ void countDisplay() {
         setColorOnFace(OFF, i);
       }
     }
-    countAnimation.set(180);
+    countAnimation.set(80);
   }
 }
 
