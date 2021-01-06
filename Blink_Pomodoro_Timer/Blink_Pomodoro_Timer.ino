@@ -4,20 +4,29 @@
 
   single click: 25 min timer
   double click: 5 min timer
-  longpress: force timer to reset anytime
+  
+  double click while timer is active: force timer to reset
+
+  longpress: turn blink off
 
   green glow: ready
-  yellow glow: timer active
+  yellow glow: 25 timer active
+  cyan glow: 5 timer active
+
   red: times up
 
 */
+
+//for button press simulation
 #include "shared/blinkbios_shared_button.h"
 #include "shared/blinkbios_shared_functions.h"
 
+//for putting blink to sleep
 #define BLINKBIOS_SLEEP_NOW_VECTOR boot_vector12
 // Calling BLINKBIOS_SLEEP_NOW_VECTOR() will immedeately put the blink into hardware sleep
 // It can only wake up from a button press.
 extern "C" void BLINKBIOS_SLEEP_NOW_VECTOR()  __attribute__((used)) __attribute__((noinline));
+
 
 float pomodoroLength;
 Timer pomodoro;
@@ -32,20 +41,27 @@ Timer turnOffAnimation;
 #define STEP_SIZE 10
 #define STEP_TIME_MS 30
 int brightness = MAX_BRIGHTNESS;
-;
+
 int step = STEP_SIZE;
 int smallStep = 5;
 
-
-
+bool goToSleep = false;
 
 void setup() {
   turnOffAnimation.never();
 }
 
 void loop() {
+  //waking up from sleep///////////
+  if (state == -1) {
+    if(buttonSingleClicked()){
+      brightness = MAX_BRIGHTNESS;
+      state = 0;
+    }
+  }
+
   //ready///////////
-  if (state == 0)
+  else if (state == 0)
     if (buttonSingleClicked()) { // 25 mins
       pomodoroLength = 1500000;
       pomodoro.set(pomodoroLength);
@@ -71,10 +87,10 @@ void loop() {
       brightness = MAX_BRIGHTNESS;
 
     }
+    //show time left
     if (buttonSingleClicked()) {
       countDisplayBright();
     }
-
     //reset///////////
     else if (buttonDoubleClicked()) {
       state = 0;
@@ -88,29 +104,37 @@ void loop() {
   //alarm///////////
   else if (state == 2) {
     alarmDisplay();
-
+    //reset
     if (buttonSingleClicked()) {
       state = 0;
       brightness = MAX_BRIGHTNESS;
+    }
+  }
 
+
+  //turn off///////////
+  if (buttonLongPressed()) {
+    turnOffAnimation.set(1500);
+    goToSleep = true;
+    state = 3;
+    brightness = MAX_BRIGHTNESS;
+  }
+
+  if (state == 3) {
+    brightness -= 2;
+    
+    setColor( dim( BLUE ,  constrain(brightness,0,MAX_BRIGHTNESS)  ) );
+
+    if (turnOffAnimation.isExpired()) {
+      setColor( OFF);
+      turnOffAnimation.never();
+      BLINKBIOS_SLEEP_NOW_VECTOR();
+      state = -1;
     }
   }
 
 
 
-
-
-  //turn off
-  //  if (buttonLongPressed()) {
-  //    turnOffAnimation.set( 500 );
-  //    setColor( dim( RED ,  MAX_BRIGHTNESS  ) );
-  //  }
-  //
-  //  if (turnOffAnimation.isExpired()) {
-  //    setColor(OFF);
-  //    BLINKBIOS_SLEEP_NOW_VECTOR();
-  //  }
-  //
 
   if (state == 1) {
     // These two lines will postpone sleeping. The first one postpones cold sleep and
