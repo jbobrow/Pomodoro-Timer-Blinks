@@ -1,4 +1,4 @@
-# Pomodoro Timer for Blinks by Move38
+# Pomodoro Timer for Blinks
 - buttons
   - single click: 25 min timer
   - double click: 5 min timer
