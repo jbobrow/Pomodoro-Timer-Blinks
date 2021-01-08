@@ -21,13 +21,6 @@
 #include "shared/blinkbios_shared_button.h"
 #include "shared/blinkbios_shared_functions.h"
 
-//for putting blink to sleep
-#define BLINKBIOS_SLEEP_NOW_VECTOR boot_vector12
-// Calling BLINKBIOS_SLEEP_NOW_VECTOR() will immedeately put the blink into hardware sleep
-// It can only wake up from a button press.
-extern "C" void BLINKBIOS_SLEEP_NOW_VECTOR()  __attribute__((used)) __attribute__((noinline));
-
-
 float pomodoroLength;
 Timer pomodoro;
 
