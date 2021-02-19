@@ -21,10 +21,12 @@
 #include "shared/blinkbios_shared_button.h"
 #include "shared/blinkbios_shared_functions.h"
 
+enum pomodoroStates {WAKE, READY, COUNTING, ALARM, SLEEP};  
+
 float pomodoroLength;
 Timer pomodoro;
 
-int state = 0;
+byte state = READY;
 
 Timer readyAnimation;
 Timer alarmAnimation;
@@ -33,7 +35,9 @@ Timer turnOffAnimation;
 
 #define STEP_SIZE 10
 #define STEP_TIME_MS 30
-int brightness = MAX_BRIGHTNESS;
+byte brightness = MAX_BRIGHTNESS;
+
+bool alarmFlashOn = false;
 
 int step = STEP_SIZE;
 int smallStep = 5;
@@ -46,27 +50,23 @@ void setup() {
 
 void loop() {
   //waking up from sleep///////////
-  if (state == -1) {
+  if (state == WAKE) {
     if(buttonSingleClicked()){
-      brightness = MAX_BRIGHTNESS;
-      state = 0;
+      state = READY;
     }
   }
 
   //ready///////////
-  else if (state == 0)
+  else if (state == READY)
     if (buttonSingleClicked()) { // 25 mins
       pomodoroLength = 1500000;
       pomodoro.set(pomodoroLength);
-      state = 1;
-      brightness = MAX_BRIGHTNESS;
+      state = COUNTING;
     }
     else if (buttonDoubleClicked()) { //5 mins
       pomodoroLength = 300000;
       pomodoro.set(pomodoroLength);
-      state = 1;
-      brightness = MAX_BRIGHTNESS;
-
+      state = COUNTING;
     }
     else {
       readyDisplay();
@@ -74,11 +74,9 @@ void loop() {
 
 
   //counting///////////
-  else if (state == 1) {
+  else if (state == COUNTING) {
     if (pomodoro.isExpired()) {
-      state = 2;
-      brightness = MAX_BRIGHTNESS;
-
+      state = ALARM;
     }
     //show time left
     if (buttonSingleClicked()) {
@@ -86,50 +84,46 @@ void loop() {
     }
     //reset///////////
     else if (buttonDoubleClicked()) {
-      state = 0;
-      brightness = MAX_BRIGHTNESS;
+      state = READY;
     }
     countDisplay();
-
-
   }
 
   //alarm///////////
-  else if (state == 2) {
+  else if (state == ALARM) {
     alarmDisplay();
     //reset
     if (buttonSingleClicked()) {
-      state = 0;
-      brightness = MAX_BRIGHTNESS;
+      state = READY;
     }
   }
 
 
   //turn off///////////
   if (buttonLongPressed()) {
-    turnOffAnimation.set(1500);
+    turnOffAnimation.set(1800);
     goToSleep = true;
-    state = 3;
+    state = SLEEP;
     brightness = MAX_BRIGHTNESS;
   }
 
-  if (state == 3) {
-    brightness -= 2;
+  if (state == SLEEP) {
+    brightness -= 4;
     
-    setColor( dim( BLUE ,  constrain(brightness,0,MAX_BRIGHTNESS)  ) );
+    setColor( dim( BLUE ,  constrain(brightness,0,MAX_BRIGHTNESS) ) );
 
     if (turnOffAnimation.isExpired()) {
       setColor( OFF);
       turnOffAnimation.never();
+      state = WAKE;
       BLINKBIOS_SLEEP_NOW_VECTOR();
-      state = -1;
     }
   }
 
 
 
 
-  if (state == 1) {
+  if (state == COUNTING) {
     // These two lines will postpone sleeping. The first one postpones cold sleep and
     // the second one postpones warm sleep. Note that this will also keep any neighbooring
     // blinks from warm sleeping as well (they will still cold sleep).
@@ -172,22 +166,18 @@ void countDisplay() {
 
 void alarmDisplay() {
   if (alarmAnimation.isExpired()) {
-    if ( (brightness + step > MAX_BRIGHTNESS ) || (brightness + step < 0 ) ) {
-      step = -step;
-    }
-    brightness += step;
-    setColor( dim( RED ,  brightness  ) );
-    alarmAnimation.set( 1 );
+      alarmFlashOn = !alarmFlashOn;
+      alarmAnimation.set( 200 );
+  }
+
+  if(alarmFlashOn) {
+    setColor(RED);
+  }
+  else {
+    setColor(OFF);
   }
 }
 
 void readyDisplay() {
-  if (readyAnimation.isExpired()) {
-    if ( (brightness + step > MAX_BRIGHTNESS ) || (brightness + step < MAX_BRIGHTNESS * -1.0) ) {
-      step = -step;
-    }
-    brightness += step;
-    setColor( dim( GREEN ,  constrain(brightness, 0, MAX_BRIGHTNESS)  ) );
-    readyAnimation.set( 40 );
-  }
+  setColor(dim(GREEN, sin8_C(millis()/10)));
 }
